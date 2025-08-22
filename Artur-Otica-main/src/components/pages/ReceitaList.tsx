@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Search, Edit, Trash2, X } from "lucide-react";
+import { Plus, Edit, Trash2, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -20,28 +20,29 @@ export default function ReceitaList() {
   const [editingReceita, setEditingReceita] = useState<any | null>(null);
   const { toast } = useToast();
 
-  // Campos do formulário
   const [form, setForm] = useState({
     id: 0,
-    nome_cliente: "",
-    esferico_od: "",
-    esferico_oe: "",
-    cilindro_od: "",
-    cilindro_oe: "",
-    adicao: "",
-    data_receita: "",
+    id_os: 0,
+    esferico_longe_od: "",
+    cilindrico_longe_od: "",
+    eixo_longe_od: "",
+    dnp_longe_od: "",
+    altura_od: "",
+    adicao_od: "",
+    esferico_longe_oe: "",
+    cilindrico_longe_oe: "",
+    eixo_longe_oe: "",
+    dnp_longe_oe: "",
+    altura_oe: "",
+    adicao_oe: "",
   });
 
   const fetchReceitas = async () => {
     try {
-      let query = supabase
-        .from("receita")
-        .select("*")
-        .order("data_receita", { ascending: false });
-
-      if (search) query = query.ilike("nome_cliente", `%${search}%`);
-
+      let query = supabase.from("receita").select("*").order("id", { ascending: false });
+      if (search) query = query.ilike("id_os", `%${search}%`);
       const { data, error } = await query;
+      console.log("Receitas:", data, "Erro:", error); // debug
       if (error) throw error;
       setReceitas(data || []);
     } catch (error: any) {
@@ -74,46 +75,35 @@ export default function ReceitaList() {
 
   const startEdit = (receita: any) => {
     setEditingReceita(receita);
-    setForm({
-      id: receita.id,
-      nome_cliente: receita.nome_cliente,
-      esferico_od: receita.esferico_od,
-      esferico_oe: receita.esferico_oe,
-      cilindro_od: receita.cilindro_od,
-      cilindro_oe: receita.cilindro_oe,
-      adicao: receita.adicao,
-      data_receita: receita.data_receita?.split("T")[0] || "",
-    });
+    setForm({ ...receita });
   };
 
   const cancelEdit = () => {
     setEditingReceita(null);
     setForm({
       id: 0,
-      nome_cliente: "",
-      esferico_od: "",
-      esferico_oe: "",
-      cilindro_od: "",
-      cilindro_oe: "",
-      adicao: "",
-      data_receita: "",
+      id_os: 0,
+      esferico_longe_od: "",
+      cilindrico_longe_od: "",
+      eixo_longe_od: "",
+      dnp_longe_od: "",
+      altura_od: "",
+      adicao_od: "",
+      esferico_longe_oe: "",
+      cilindrico_longe_oe: "",
+      eixo_longe_oe: "",
+      dnp_longe_oe: "",
+      altura_oe: "",
+      adicao_oe: "",
     });
   };
 
   const saveReceita = async () => {
     try {
-      if (editingReceita) {
+      if (editingReceita && editingReceita.id) {
         const { error } = await supabase
           .from("receita")
-          .update({
-            nome_cliente: form.nome_cliente,
-            esferico_od: form.esferico_od,
-            esferico_oe: form.esferico_oe,
-            cilindro_od: form.cilindro_od,
-            cilindro_oe: form.cilindro_oe,
-            adicao: form.adicao,
-            data_receita: form.data_receita,
-          })
+          .update(form)
           .eq("id", form.id);
         if (error) throw error;
         toast({ title: "Receita atualizada com sucesso!" });
@@ -142,7 +132,7 @@ export default function ReceitaList() {
         <CardContent>
           <div className="flex justify-between mb-4">
             <Input
-              placeholder="Pesquisar por cliente..."
+              placeholder="Pesquisar por OS..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
@@ -157,53 +147,79 @@ export default function ReceitaList() {
             )}
           </div>
 
-          {/* Formulário de edição/criação */}
           {editingReceita && (
             <Card className="mb-4 p-4 bg-gray-50">
               <div className="flex justify-between mb-4">
-                <CardTitle>
-                  {editingReceita.id ? "Editar Receita" : "Nova Receita"}
-                </CardTitle>
+                <CardTitle>{editingReceita.id ? "Editar Receita" : "Nova Receita"}</CardTitle>
                 <Button variant="ghost" onClick={cancelEdit}>
                   <X />
                 </Button>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <Input
-                  placeholder="Nome do Cliente"
-                  value={form.nome_cliente}
-                  onChange={(e) => setForm({ ...form, nome_cliente: e.target.value })}
+                  placeholder="ID OS"
+                  value={form.id_os}
+                  onChange={(e) => setForm({ ...form, id_os: Number(e.target.value) })}
                 />
                 <Input
                   placeholder="Esférico OD"
-                  value={form.esferico_od}
-                  onChange={(e) => setForm({ ...form, esferico_od: e.target.value })}
+                  value={form.esferico_longe_od}
+                  onChange={(e) => setForm({ ...form, esferico_longe_od: e.target.value })}
+                />
+                <Input
+                  placeholder="Cilíndrico OD"
+                  value={form.cilindrico_longe_od}
+                  onChange={(e) => setForm({ ...form, cilindrico_longe_od: e.target.value })}
+                />
+                <Input
+                  placeholder="Eixo OD"
+                  value={form.eixo_longe_od}
+                  onChange={(e) => setForm({ ...form, eixo_longe_od: e.target.value })}
+                />
+                <Input
+                  placeholder="DNP OD"
+                  value={form.dnp_longe_od}
+                  onChange={(e) => setForm({ ...form, dnp_longe_od: e.target.value })}
+                />
+                <Input
+                  placeholder="Altura OD"
+                  value={form.altura_od}
+                  onChange={(e) => setForm({ ...form, altura_od: e.target.value })}
+                />
+                <Input
+                  placeholder="Adição OD"
+                  value={form.adicao_od}
+                  onChange={(e) => setForm({ ...form, adicao_od: e.target.value })}
                 />
                 <Input
                   placeholder="Esférico OE"
-                  value={form.esferico_oe}
-                  onChange={(e) => setForm({ ...form, esferico_oe: e.target.value })}
+                  value={form.esferico_longe_oe}
+                  onChange={(e) => setForm({ ...form, esferico_longe_oe: e.target.value })}
                 />
                 <Input
-                  placeholder="Cilindro OD"
-                  value={form.cilindro_od}
-                  onChange={(e) => setForm({ ...form, cilindro_od: e.target.value })}
+                  placeholder="Cilíndrico OE"
+                  value={form.cilindrico_longe_oe}
+                  onChange={(e) => setForm({ ...form, cilindrico_longe_oe: e.target.value })}
                 />
                 <Input
-                  placeholder="Cilindro OE"
-                  value={form.cilindro_oe}
-                  onChange={(e) => setForm({ ...form, cilindro_oe: e.target.value })}
+                  placeholder="Eixo OE"
+                  value={form.eixo_longe_oe}
+                  onChange={(e) => setForm({ ...form, eixo_longe_oe: e.target.value })}
                 />
                 <Input
-                  placeholder="Adição"
-                  value={form.adicao}
-                  onChange={(e) => setForm({ ...form, adicao: e.target.value })}
+                  placeholder="DNP OE"
+                  value={form.dnp_longe_oe}
+                  onChange={(e) => setForm({ ...form, dnp_longe_oe: e.target.value })}
                 />
                 <Input
-                  type="date"
-                  placeholder="Data Receita"
-                  value={form.data_receita}
-                  onChange={(e) => setForm({ ...form, data_receita: e.target.value })}
+                  placeholder="Altura OE"
+                  value={form.altura_oe}
+                  onChange={(e) => setForm({ ...form, altura_oe: e.target.value })}
+                />
+                <Input
+                  placeholder="Adição OE"
+                  value={form.adicao_oe}
+                  onChange={(e) => setForm({ ...form, adicao_oe: e.target.value })}
                 />
               </div>
               <Button className="mt-4" onClick={saveReceita}>
@@ -215,28 +231,28 @@ export default function ReceitaList() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Cliente</TableHead>
+                <TableHead>ID OS</TableHead>
                 <TableHead>Esférico OD</TableHead>
+                <TableHead>Cilíndrico OD</TableHead>
+                <TableHead>Eixo OD</TableHead>
+                <TableHead>Altura OD</TableHead>
+                <TableHead>Adição OD</TableHead>
                 <TableHead>Esférico OE</TableHead>
-                <TableHead>Cilindro OD</TableHead>
-                <TableHead>Cilindro OE</TableHead>
-                <TableHead>Adição</TableHead>
-                <TableHead>Data</TableHead>
+                <TableHead>Cilíndrico OE</TableHead>
                 <TableHead>Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {receitas.map((r) => (
                 <TableRow key={r.id}>
-                  <TableCell>{r.nome_cliente}</TableCell>
-                  <TableCell>{r.esferico_od}</TableCell>
-                  <TableCell>{r.esferico_oe}</TableCell>
-                  <TableCell>{r.cilindro_od}</TableCell>
-                  <TableCell>{r.cilindro_oe}</TableCell>
-                  <TableCell>{r.adicao}</TableCell>
-                  <TableCell>
-                    {r.data_receita ? new Date(r.data_receita).toLocaleDateString() : "-"}
-                  </TableCell>
+                  <TableCell>{r.id_os}</TableCell>
+                  <TableCell>{r.esferico_longe_od}</TableCell>
+                  <TableCell>{r.cilindrico_longe_od}</TableCell>
+                  <TableCell>{r.eixo_longe_od}</TableCell>
+                  <TableCell>{r.altura_od}</TableCell>
+                  <TableCell>{r.adicao_od}</TableCell>
+                  <TableCell>{r.esferico_longe_oe}</TableCell>
+                  <TableCell>{r.cilindrico_longe_oe}</TableCell>
                   <TableCell>
                     <div className="flex gap-2">
                       <Button size="sm" variant="outline" onClick={() => startEdit(r)}>
