@@ -47,53 +47,55 @@ export function ReceitaList() {
   }, []);
 
   const fetchReceitas = async () => {
-    setLoading(true);
-    try {
-      const { data, error } = await supabase
-        .from("receita")
-        .select(`
-          id,
-          id_os,
-          created_at,
-          ESFERICO_LONGE_OD,
-          CILINDRICO_LONGE_OD,
-          ESFERICO_LONGE_OE,
-          CILINDRICO_LONGE_OE,
-          ordem_servico:ordem_servico (
-            numero_os,
-            cliente:cliente (
-              nome
-            )
+  setLoading(true);
+  try {
+    const { data, error } = await supabase
+      .from("receita")
+      .select(`
+        id,
+        id_os,
+        ESFERICO_LONGE_OD,
+        CILINDRICO_LONGE_OD,
+        ESFERICO_LONGE_OE,
+        CILINDRICO_LONGE_OE,
+        ordem_servico (
+          numero_os,
+          data_pedido,
+          cliente (
+            nome
           )
-        `)
-        .order("created_at", { ascending: false });
+        )
+      `)
+      .order("id", { ascending: false });
 
-      if (error) throw error;
+    if (error) throw error;
 
-      const receitasFormatadas = data?.map((r: any) => ({
-        id: r.id,
-        id_os: r.id_os,
-        created_at: r.created_at,
-        esferico_longe_od: r.ESFERICO_LONGE_OD ?? null,
-        cilindrico_longe_od: r.CILINDRICO_LONGE_OD ?? null,
-        esferico_longe_oe: r.ESFERICO_LONGE_OE ?? null,
-        cilindrico_longe_oe: r.CILINDRICO_LONGE_OE ?? null,
-        numero_os: r.ordem_servico?.numero_os || "-",
-        cliente_nome: r.ordem_servico?.cliente?.nome || "-",
-      }));
+    console.log("Receitas carregadas:", data); // debug
 
-      setReceitas(receitasFormatadas || []);
-    } catch (error) {
-      console.error("Erro ao buscar receitas:", error);
-      toast({
-        title: "Erro",
-        description: "Não foi possível carregar as receitas.",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
+    const receitasFormatadas = data?.map((r: any) => ({
+      id: r.id,
+      id_os: r.id_os,
+      esferico_longe_od: r.ESFERICO_LONGE_OD ?? null,
+      cilindrico_longe_od: r.CILINDRICO_LONGE_OD ?? null,
+      esferico_longe_oe: r.ESFERICO_LONGE_OE ?? null,
+      cilindrico_longe_oe: r.CILINDRICO_LONGE_OE ?? null,
+      numero_os: r.ordem_servico?.numero_os || "-",
+      cliente_nome: r.ordem_servico?.cliente?.nome || "-",
+      data: r.ordem_servico?.data_pedido || null,
+    }));
+
+    setReceitas(receitasFormatadas || []);
+  } catch (error) {
+    console.error("Erro ao buscar receitas:", error);
+    toast({
+      title: "Erro",
+      description: "Não foi possível carregar as receitas.",
+      variant: "destructive",
+    });
+  } finally {
+    setLoading(false);
+  }
+};
 
   const handleDelete = async (id: number) => {
     if (!confirm("Tem certeza que deseja excluir esta receita?")) return;
@@ -189,7 +191,7 @@ export function ReceitaList() {
                       <TableCell>{r.numero_os}</TableCell>
                       <TableCell>{r.cliente_nome}</TableCell>
                       <TableCell>
-                        {r.created_at ? new Date(r.created_at).toLocaleDateString("pt-BR") : "-"}
+                        {r.data ? new Date(r.data).toLocaleDateString("pt-BR") : "-"}
                       </TableCell>
                       <TableCell>{r.esferico_longe_od ?? "-"}</TableCell>
                       <TableCell>{r.cilindrico_longe_od ?? "-"}</TableCell>
