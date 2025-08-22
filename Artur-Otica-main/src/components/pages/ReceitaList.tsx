@@ -51,40 +51,12 @@ export function ReceitaList() {
   try {
     const { data, error } = await supabase
       .from("receita")
-      .select(`
-        id,
-        id_os,
-        ESFERICO_LONGE_OD,
-        CILINDRICO_LONGE_OD,
-        ESFERICO_LONGE_OE,
-        CILINDRICO_LONGE_OE,
-        ordem_servico (
-          numero_os,
-          data_pedido,
-          cliente (
-            nome
-          )
-        )
-      `)
+      .select("*") // traga tudo igual ao ClientesList
       .order("id", { ascending: false });
 
     if (error) throw error;
-
-    console.log("Receitas carregadas:", data); // debug
-
-    const receitasFormatadas = data?.map((r: any) => ({
-      id: r.id,
-      id_os: r.id_os,
-      esferico_longe_od: r.ESFERICO_LONGE_OD ?? null,
-      cilindrico_longe_od: r.CILINDRICO_LONGE_OD ?? null,
-      esferico_longe_oe: r.ESFERICO_LONGE_OE ?? null,
-      cilindrico_longe_oe: r.CILINDRICO_LONGE_OE ?? null,
-      numero_os: r.ordem_servico?.numero_os || "-",
-      cliente_nome: r.ordem_servico?.cliente?.nome || "-",
-      data: r.ordem_servico?.data_pedido || null,
-    }));
-
-    setReceitas(receitasFormatadas || []);
+    console.log("Receitas carregadas:", data);
+    setReceitas(data || []);
   } catch (error) {
     console.error("Erro ao buscar receitas:", error);
     toast({
