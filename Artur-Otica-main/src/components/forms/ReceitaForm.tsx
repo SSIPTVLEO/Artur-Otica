@@ -120,7 +120,7 @@ export function ReceitaForm({ ordemServicoId, onSuccess, onCancel }: ReceitaForm
         id_os: parseInt(selectedOS),
         ...Object.fromEntries(
           Object.entries(receita).map(([key, value]) => [
-            key.toUpperCase(),
+            key,
             value === "" ? null : isNaN(Number(value)) ? value : Number(value)
           ])
         ),
