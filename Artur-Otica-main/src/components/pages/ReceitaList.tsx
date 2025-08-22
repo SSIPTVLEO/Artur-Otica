@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Search, Edit, Trash2 } from "lucide-react";
+import { Plus, Search, Edit, Trash2, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -13,191 +13,248 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import { ReceitaForm } from "./ReceitaForm";
 
-interface Receita {
-  id: number;
-  id_os: number;
-  cliente_nome?: string;
-  numero_os?: string;
-  esferico_longe_od?: number;
-  cilindrico_longe_od?: number;
-  esferico_longe_oe?: number;
-  cilindrico_longe_oe?: number;
-  created_at?: string;
-}
-
-export function ReceitaList() {
-  const [receitas, setReceitas] = useState<Receita[]>([]);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [editingReceita, setEditingReceita] = useState<Receita | null>(null);
-  const [loading, setLoading] = useState(false);
+export default function ReceitaList() {
+  const [receitas, setReceitas] = useState<any[]>([]);
+  const [search, setSearch] = useState("");
+  const [editingReceita, setEditingReceita] = useState<any | null>(null);
   const { toast } = useToast();
 
-  useEffect(() => {
-    fetchReceitas();
-  }, []);
+  // Campos do formulário
+  const [form, setForm] = useState({
+    id: 0,
+    nome_cliente: "",
+    esferico_od: "",
+    esferico_oe: "",
+    cilindro_od: "",
+    cilindro_oe: "",
+    adicao: "",
+    data_receita: "",
+  });
 
   const fetchReceitas = async () => {
-  setLoading(true);
-  try {
-    const { data, error } = await supabase
-      .from("receita")
-      .select("*") // traga tudo igual ao ClientesList
-      .order("id", { ascending: false });
-
-    if (error) throw error;
-    console.log("Receitas carregadas:", data);
-    setReceitas(data || []);
-  } catch (error) {
-    console.error("Erro ao buscar receitas:", error);
-    toast({
-      title: "Erro",
-      description: "Não foi possível carregar as receitas.",
-      variant: "destructive",
-    });
-  } finally {
-    setLoading(false);
-  }
-};
-
-  const handleDelete = async (id: number) => {
-    if (!confirm("Tem certeza que deseja excluir esta receita?")) return;
-
     try {
-      const { error } = await supabase.from("receita").delete().eq("id", id);
+      let query = supabase
+        .from("receita")
+        .select("*")
+        .order("data_receita", { ascending: false });
 
+      if (search) query = query.ilike("nome_cliente", `%${search}%`);
+
+      const { data, error } = await query;
       if (error) throw error;
-      toast({ title: "Sucesso", description: "Receita excluída!" });
-      fetchReceitas();
+      setReceitas(data || []);
     } catch (error: any) {
-      console.error("Erro ao excluir receita:", error.message || error);
       toast({
-        title: "Erro",
-        description: error.message || "Não foi possível excluir a receita.",
+        title: "Erro ao carregar receitas",
+        description: error.message,
         variant: "destructive",
       });
     }
   };
 
-  const filteredReceitas = receitas.filter(
-    (r) =>
-      r.cliente_nome?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      r.numero_os?.toString().includes(searchTerm)
-  );
+  useEffect(() => {
+    fetchReceitas();
+  }, [search]);
+
+  const deleteReceita = async (id: number) => {
+    try {
+      const { error } = await supabase.from("receita").delete().eq("id", id);
+      if (error) throw error;
+      toast({ title: "Receita deletada com sucesso!" });
+      fetchReceitas();
+    } catch (error: any) {
+      toast({
+        title: "Erro ao deletar receita",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const startEdit = (receita: any) => {
+    setEditingReceita(receita);
+    setForm({
+      id: receita.id,
+      nome_cliente: receita.nome_cliente,
+      esferico_od: receita.esferico_od,
+      esferico_oe: receita.esferico_oe,
+      cilindro_od: receita.cilindro_od,
+      cilindro_oe: receita.cilindro_oe,
+      adicao: receita.adicao,
+      data_receita: receita.data_receita?.split("T")[0] || "",
+    });
+  };
+
+  const cancelEdit = () => {
+    setEditingReceita(null);
+    setForm({
+      id: 0,
+      nome_cliente: "",
+      esferico_od: "",
+      esferico_oe: "",
+      cilindro_od: "",
+      cilindro_oe: "",
+      adicao: "",
+      data_receita: "",
+    });
+  };
+
+  const saveReceita = async () => {
+    try {
+      if (editingReceita) {
+        const { error } = await supabase
+          .from("receita")
+          .update({
+            nome_cliente: form.nome_cliente,
+            esferico_od: form.esferico_od,
+            esferico_oe: form.esferico_oe,
+            cilindro_od: form.cilindro_od,
+            cilindro_oe: form.cilindro_oe,
+            adicao: form.adicao,
+            data_receita: form.data_receita,
+          })
+          .eq("id", form.id);
+        if (error) throw error;
+        toast({ title: "Receita atualizada com sucesso!" });
+      } else {
+        const { error } = await supabase.from("receita").insert([form]);
+        if (error) throw error;
+        toast({ title: "Receita criada com sucesso!" });
+      }
+      cancelEdit();
+      fetchReceitas();
+    } catch (error: any) {
+      toast({
+        title: "Erro ao salvar receita",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold">Receitas</h2>
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button className="bg-gradient-primary hover:shadow-glow">
-              <Plus className="mr-2 h-4 w-4" />
-              Nova Receita
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-4xl">
-            <DialogHeader>
-              <DialogTitle>
-                {editingReceita ? "Editar Receita" : "Nova Receita"}
-              </DialogTitle>
-            </DialogHeader>
-            <ReceitaForm
-              ordemServicoId={editingReceita?.id_os}
-              onSuccess={() => {
-                setIsDialogOpen(false);
-                setEditingReceita(null);
-                fetchReceitas();
-              }}
-              onCancel={() => setIsDialogOpen(false)}
-            />
-          </DialogContent>
-        </Dialog>
-      </div>
-
-      <Card>
+    <div>
+      <Card className="mb-4">
         <CardHeader>
-          <div className="flex items-center space-x-2">
-            <Search className="h-4 w-4" />
-            <Input
-              placeholder="Buscar por cliente ou OS..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="max-w-sm"
-            />
-          </div>
+          <CardTitle>Receitas</CardTitle>
         </CardHeader>
         <CardContent>
-          {loading ? (
-            <div className="text-center py-8">
-              <div className="animate-spin h-6 w-6 border-2 border-primary border-t-transparent rounded-full mx-auto mb-2"></div>
-              <p className="text-muted-foreground">Carregando receitas...</p>
-            </div>
-          ) : (
-            <>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Nº OS</TableHead>
-                    <TableHead>Cliente</TableHead>
-                    <TableHead>Data</TableHead>
-                    <TableHead>OD Esférico</TableHead>
-                    <TableHead>OD Cilíndrico</TableHead>
-                    <TableHead>OE Esférico</TableHead>
-                    <TableHead>OE Cilíndrico</TableHead>
-                    <TableHead className="text-right">Ações</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredReceitas.map((r) => (
-                    <TableRow key={r.id}>
-                      <TableCell>{r.numero_os}</TableCell>
-                      <TableCell>{r.cliente_nome}</TableCell>
-                      <TableCell>
-                        {r.data ? new Date(r.data).toLocaleDateString("pt-BR") : "-"}
-                      </TableCell>
-                      <TableCell>{r.esferico_longe_od ?? "-"}</TableCell>
-                      <TableCell>{r.cilindrico_longe_od ?? "-"}</TableCell>
-                      <TableCell>{r.esferico_longe_oe ?? "-"}</TableCell>
-                      <TableCell>{r.cilindrico_longe_oe ?? "-"}</TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end space-x-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => setEditingReceita(r)}
-                          >
-                            <Edit className="h-3 w-3" />
-                          </Button>
-                          <Button
-                            variant="destructive"
-                            size="sm"
-                            onClick={() => handleDelete(r.id)}
-                          >
-                            <Trash2 className="h-3 w-3" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-              {filteredReceitas.length === 0 && !loading && (
-                <div className="text-center py-8 text-muted-foreground">
-                  Nenhuma receita encontrada.
-                </div>
-              )}
-            </>
+          <div className="flex justify-between mb-4">
+            <Input
+              placeholder="Pesquisar por cliente..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+            {!editingReceita && (
+              <Button
+                variant="secondary"
+                className="ml-2"
+                onClick={() => setEditingReceita({})}
+              >
+                <Plus className="mr-2" /> Nova Receita
+              </Button>
+            )}
+          </div>
+
+          {/* Formulário de edição/criação */}
+          {editingReceita && (
+            <Card className="mb-4 p-4 bg-gray-50">
+              <div className="flex justify-between mb-4">
+                <CardTitle>
+                  {editingReceita.id ? "Editar Receita" : "Nova Receita"}
+                </CardTitle>
+                <Button variant="ghost" onClick={cancelEdit}>
+                  <X />
+                </Button>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <Input
+                  placeholder="Nome do Cliente"
+                  value={form.nome_cliente}
+                  onChange={(e) => setForm({ ...form, nome_cliente: e.target.value })}
+                />
+                <Input
+                  placeholder="Esférico OD"
+                  value={form.esferico_od}
+                  onChange={(e) => setForm({ ...form, esferico_od: e.target.value })}
+                />
+                <Input
+                  placeholder="Esférico OE"
+                  value={form.esferico_oe}
+                  onChange={(e) => setForm({ ...form, esferico_oe: e.target.value })}
+                />
+                <Input
+                  placeholder="Cilindro OD"
+                  value={form.cilindro_od}
+                  onChange={(e) => setForm({ ...form, cilindro_od: e.target.value })}
+                />
+                <Input
+                  placeholder="Cilindro OE"
+                  value={form.cilindro_oe}
+                  onChange={(e) => setForm({ ...form, cilindro_oe: e.target.value })}
+                />
+                <Input
+                  placeholder="Adição"
+                  value={form.adicao}
+                  onChange={(e) => setForm({ ...form, adicao: e.target.value })}
+                />
+                <Input
+                  type="date"
+                  placeholder="Data Receita"
+                  value={form.data_receita}
+                  onChange={(e) => setForm({ ...form, data_receita: e.target.value })}
+                />
+              </div>
+              <Button className="mt-4" onClick={saveReceita}>
+                {editingReceita.id ? "Atualizar Receita" : "Salvar Receita"}
+              </Button>
+            </Card>
           )}
+
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Cliente</TableHead>
+                <TableHead>Esférico OD</TableHead>
+                <TableHead>Esférico OE</TableHead>
+                <TableHead>Cilindro OD</TableHead>
+                <TableHead>Cilindro OE</TableHead>
+                <TableHead>Adição</TableHead>
+                <TableHead>Data</TableHead>
+                <TableHead>Ações</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {receitas.map((r) => (
+                <TableRow key={r.id}>
+                  <TableCell>{r.nome_cliente}</TableCell>
+                  <TableCell>{r.esferico_od}</TableCell>
+                  <TableCell>{r.esferico_oe}</TableCell>
+                  <TableCell>{r.cilindro_od}</TableCell>
+                  <TableCell>{r.cilindro_oe}</TableCell>
+                  <TableCell>{r.adicao}</TableCell>
+                  <TableCell>
+                    {r.data_receita ? new Date(r.data_receita).toLocaleDateString() : "-"}
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex gap-2">
+                      <Button size="sm" variant="outline" onClick={() => startEdit(r)}>
+                        <Edit size={16} />
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        onClick={() => deleteReceita(r.id)}
+                      >
+                        <Trash2 size={16} />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         </CardContent>
       </Card>
     </div>
