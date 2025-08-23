@@ -4,6 +4,7 @@ import { Sidebar } from "@/components/layout/Sidebar";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { ReceitaForm } from "@/components/forms/ReceitaForm";
+import ReceitaList from "@/components/pages/ReceitaList";
 import { ClientesList } from "@/components/pages/ClientesList";
 import { OrdensList } from "@/components/pages/OrdensList";
 import { ArmacoesList } from "@/components/pages/ArmacoesList";
@@ -19,10 +20,43 @@ export function Dashboard() {
   const [userRole, setUserRole] = useState<string>("");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showForm, setShowForm] = useState(false);
+  const [stats, setStats] = useState([
+    {
+      title: "Total Clientes",
+      value: "0",
+      icon: Users,
+      change: "0%",
+      color: "text-blue-600",
+    },
+    {
+      title: "Ordens Ativas",
+      value: "0",
+      icon: FileText,
+      change: "0%",
+      color: "text-green-600",
+    },
+    {
+      title: "Receitas",
+      value: "0",
+      icon: Eye,
+      change: "0%",
+      color: "text-purple-600",
+    },
+    {
+      title: "Faturamento",
+      value: "R$ 0,00",
+      icon: TrendingUp,
+      change: "0%",
+      color: "text-primary",
+    },
+  ]);
+  const [recentOrders, setRecentOrders] = useState<any[]>([]);
+  const [recentClients, setRecentClients] = useState<any[]>([]);
   const { toast } = useToast();
 
   useEffect(() => {
     getCurrentUser();
+    loadDashboardData();
   }, []);
 
   const getCurrentUser = async () => {
@@ -46,36 +80,89 @@ export function Dashboard() {
     }
   };
 
-  const stats = [
-    {
-      title: "Total Clientes",
-      value: "1,234",
-      icon: Users,
-      change: "+12%",
-      color: "text-blue-600",
-    },
-    {
-      title: "Ordens Ativas",
-      value: "89",
-      icon: FileText,
-      change: "+5%",
-      color: "text-green-600",
-    },
-    {
-      title: "Receitas",
-      value: "456",
-      icon: Eye,
-      change: "+8%",
-      color: "text-purple-600",
-    },
-    {
-      title: "Faturamento",
-      value: "R$ 45.6K",
-      icon: TrendingUp,
-      change: "+15%",
-      color: "text-primary",
-    },
-  ];
+  const loadDashboardData = async () => {
+    try {
+      // Contar clientes
+      const { count: clientesCount } = await supabase
+        .from("cliente")
+        .select("*", { count: "exact", head: true });
+
+      // Contar ordens de serviço
+      const { count: ordensCount } = await supabase
+        .from("ordem_servico")
+        .select("*", { count: "exact", head: true });
+
+      // Contar receitas
+      const { count: receitasCount } = await supabase
+        .from("receita")
+        .select("*", { count: "exact", head: true });
+
+      // Calcular faturamento total
+      const { data: pagamentos } = await supabase
+        .from("pagamento")
+        .select("valor_total");
+
+      const faturamentoTotal = pagamentos?.reduce((sum, p) => sum + (p.valor_total || 0), 0) || 0;
+
+      // Buscar ordens recentes com dados do cliente
+      const { data: ordensRecentes } = await supabase
+        .from("ordem_servico")
+        .select(`
+          id,
+          numero_os,
+          data_pedido,
+          cliente:id_cliente (nome)
+        `)
+        .order("data_pedido", { ascending: false })
+        .limit(3);
+
+      // Buscar clientes recentes
+      const { data: clientesRecentes } = await supabase
+        .from("cliente")
+        .select("id, nome, created_by")
+        .order("id", { ascending: false })
+        .limit(3);
+
+      // Atualizar stats
+      setStats([
+        {
+          title: "Total Clientes",
+          value: clientesCount?.toString() || "0",
+          icon: Users,
+          change: "0%",
+          color: "text-blue-600",
+        },
+        {
+          title: "Ordens Ativas",
+          value: ordensCount?.toString() || "0",
+          icon: FileText,
+          change: "0%",
+          color: "text-green-600",
+        },
+        {
+          title: "Receitas",
+          value: receitasCount?.toString() || "0",
+          icon: Eye,
+          change: "0%",
+          color: "text-purple-600",
+        },
+        {
+          title: "Faturamento",
+          value: `R$ ${faturamentoTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`,
+          icon: TrendingUp,
+          change: "0%",
+          color: "text-primary",
+        },
+      ]);
+
+      setRecentOrders(ordensRecentes || []);
+      setRecentClients(clientesRecentes || []);
+
+    } catch (error) {
+      console.error("Error loading dashboard data:", error);
+    }
+  };
+
 
   const renderContent = () => {
     if (showForm) {
@@ -95,27 +182,7 @@ export function Dashboard() {
 
     switch (activeTab) {
       case "receitas":
-        return (
-          <div className="space-y-6">
-            <div className="flex justify-between items-center">
-              <h2 className="text-2xl font-bold">Receitas</h2>
-              <Button 
-                onClick={() => setShowForm(true)}
-                className="bg-gradient-primary hover:shadow-glow"
-              >
-                <Plus className="mr-2 h-4 w-4" />
-                Nova Receita
-              </Button>
-            </div>
-            <Card>
-              <CardContent className="p-6">
-                <p className="text-center text-muted-foreground">
-                  Lista de receitas será implementada aqui.
-                </p>
-              </CardContent>
-            </Card>
-          </div>
-        );
+        return <ReceitaList />;
 
       case "clientes":
         return <ClientesList />;
@@ -156,7 +223,7 @@ export function Dashboard() {
                     <CardContent>
                       <div className="text-2xl font-bold">{stat.value}</div>
                       <p className="text-xs text-muted-foreground">
-                        <span className="text-green-600">{stat.change}</span> desde o mês passado
+                        Dados atualizados
                       </p>
                     </CardContent>
                   </Card>
@@ -171,26 +238,23 @@ export function Dashboard() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    <div className="flex items-center space-x-4">
-                      <div className="w-2 h-2 bg-primary rounded-full"></div>
-                      <div className="flex-1">
-                        <p className="text-sm font-medium">OS #1234 - João Silva</p>
-                        <p className="text-xs text-muted-foreground">Receita multifocal</p>
+                    {recentOrders.length > 0 ? recentOrders.map((order, index) => (
+                      <div key={order.id} className="flex items-center space-x-4">
+                        <div className="w-2 h-2 bg-primary rounded-full"></div>
+                        <div className="flex-1">
+                          <p className="text-sm font-medium">
+                            OS #{order.numero_os} - {order.cliente?.nome || 'Cliente não encontrado'}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {new Date(order.data_pedido).toLocaleDateString('pt-BR')}
+                          </p>
+                        </div>
                       </div>
-                      <div className="text-xs text-muted-foreground">
-                        Hoje
-                      </div>
-                    </div>
-                    <div className="flex items-center space-x-4">
-                      <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                      <div className="flex-1">
-                        <p className="text-sm font-medium">OS #1233 - Maria Santos</p>
-                        <p className="text-xs text-muted-foreground">Óculos de grau</p>
-                      </div>
-                      <div className="text-xs text-muted-foreground">
-                        Ontem
-                      </div>
-                    </div>
+                    )) : (
+                      <p className="text-sm text-muted-foreground text-center">
+                        Nenhuma ordem de serviço encontrada
+                      </p>
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -201,24 +265,21 @@ export function Dashboard() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    <div className="flex items-center space-x-4">
-                      <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
-                        <Users className="h-4 w-4 text-primary" />
+                    {recentClients.length > 0 ? recentClients.map((client) => (
+                      <div key={client.id} className="flex items-center space-x-4">
+                        <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
+                          <Users className="h-4 w-4 text-primary" />
+                        </div>
+                        <div className="flex-1">
+                          <p className="text-sm font-medium">{client.nome}</p>
+                          <p className="text-xs text-muted-foreground">Cliente #{client.id}</p>
+                        </div>
                       </div>
-                      <div className="flex-1">
-                        <p className="text-sm font-medium">Ana Costa</p>
-                        <p className="text-xs text-muted-foreground">ana@email.com</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center space-x-4">
-                      <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
-                        <Users className="h-4 w-4 text-primary" />
-                      </div>
-                      <div className="flex-1">
-                        <p className="text-sm font-medium">Carlos Oliveira</p>
-                        <p className="text-xs text-muted-foreground">carlos@email.com</p>
-                      </div>
-                    </div>
+                    )) : (
+                      <p className="text-sm text-muted-foreground text-center">
+                        Nenhum cliente encontrado
+                      </p>
+                    )}
                   </div>
                 </CardContent>
               </Card>
