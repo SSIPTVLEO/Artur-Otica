@@ -75,7 +75,21 @@ export default function ReceitaList() {
 
   const startEdit = (receita: any) => {
     setEditingReceita(receita);
-    setForm({ ...receita });
+    setForm({ 
+      ...receita,
+      esferico_longe_od: receita.esferico_longe_od?.toString() || "",
+      cilindrico_longe_od: receita.cilindrico_longe_od?.toString() || "",
+      eixo_longe_od: receita.eixo_longe_od?.toString() || "",
+      dnp_longe_od: receita.dnp_longe_od?.toString() || "",
+      altura_od: receita.altura_od?.toString() || "",
+      adicao_od: receita.adicao_od?.toString() || "",
+      esferico_longe_oe: receita.esferico_longe_oe?.toString() || "",
+      cilindrico_longe_oe: receita.cilindrico_longe_oe?.toString() || "",
+      eixo_longe_oe: receita.eixo_longe_oe?.toString() || "",
+      dnp_longe_oe: receita.dnp_longe_oe?.toString() || "",
+      altura_oe: receita.altura_oe?.toString() || "",
+      adicao_oe: receita.adicao_oe?.toString() || "",
+    });
   };
 
   const cancelEdit = () => {
@@ -100,15 +114,32 @@ export default function ReceitaList() {
 
   const saveReceita = async () => {
     try {
+      // Convert string values to numbers for database insertion
+      const formData = {
+        ...form,
+        esferico_longe_od: form.esferico_longe_od ? Number(form.esferico_longe_od) : null,
+        cilindrico_longe_od: form.cilindrico_longe_od ? Number(form.cilindrico_longe_od) : null,
+        eixo_longe_od: form.eixo_longe_od ? Number(form.eixo_longe_od) : null,
+        dnp_longe_od: form.dnp_longe_od ? Number(form.dnp_longe_od) : null,
+        altura_od: form.altura_od ? Number(form.altura_od) : null,
+        adicao_od: form.adicao_od ? Number(form.adicao_od) : null,
+        esferico_longe_oe: form.esferico_longe_oe ? Number(form.esferico_longe_oe) : null,
+        cilindrico_longe_oe: form.cilindrico_longe_oe ? Number(form.cilindrico_longe_oe) : null,
+        eixo_longe_oe: form.eixo_longe_oe ? Number(form.eixo_longe_oe) : null,
+        dnp_longe_oe: form.dnp_longe_oe ? Number(form.dnp_longe_oe) : null,
+        altura_oe: form.altura_oe ? Number(form.altura_oe) : null,
+        adicao_oe: form.adicao_oe ? Number(form.adicao_oe) : null,
+      };
+
       if (editingReceita && editingReceita.id) {
         const { error } = await supabase
           .from("receita")
-          .update(form)
-          .eq("id", form.id);
+          .update(formData)
+          .eq("id", formData.id);
         if (error) throw error;
         toast({ title: "Receita atualizada com sucesso!" });
       } else {
-        const { error } = await supabase.from("receita").insert([form]);
+        const { error } = await supabase.from("receita").insert([formData]);
         if (error) throw error;
         toast({ title: "Receita criada com sucesso!" });
       }
