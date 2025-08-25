@@ -384,7 +384,7 @@ export function ArmacoesList() {
                 <TableHead>Marca</TableHead>
                 <TableHead>Referência</TableHead>
                 <TableHead>Material</TableHead>
-                <TableHead>Dimensões</TableHead>
+                <TableHead>Lente Comprada</TableHead>
                 <TableHead className="text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
@@ -396,12 +396,7 @@ export function ArmacoesList() {
                   <TableCell>{armacao.marca_armacao || "-"}</TableCell>
                   <TableCell>{armacao.referencia_armacao || "-"}</TableCell>
                   <TableCell>{armacao.material_armacao || "-"}</TableCell>
-                  <TableCell>
-                    {armacao.horizontal && armacao.ponte ? 
-                      `${armacao.horizontal}□${armacao.ponte}` : 
-                      "-"
-                    }
-                  </TableCell>
+                  <TableCell>{armacao.lente_comprada || "-"}</TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end space-x-2">
                       <Button

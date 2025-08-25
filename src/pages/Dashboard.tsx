@@ -304,7 +304,7 @@ export function Dashboard() {
           user={user}
         />
         
-        <main className="p-6">
+        <main className="p-6 pt-2">
           {renderContent()}
         </main>
       </div>

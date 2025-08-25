@@ -99,18 +99,40 @@ export function OrdensList() {
     }
   };
 
-  const generateNumeroOS = () => {
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = String(now.getMonth() + 1).padStart(2, '0');
-    const day = String(now.getDate()).padStart(2, '0');
-    const time = String(now.getTime()).slice(-4);
-    return `OS${year}${month}${day}${time}`;
+  const generateNumeroOS = async () => {
+    try {
+      // Buscar a última OS no banco
+      const { data, error } = await supabase
+        .from("ordem_servico")
+        .select("numero_os")
+        .order("id", { ascending: false })
+        .limit(1);
+      
+      if (error) throw error;
+      
+      let nextNumber = 1;
+      if (data && data.length > 0) {
+        const lastOS = data[0].numero_os;
+        // Extrair número da última OS (assumindo formato OS001, OS002, etc.)
+        const match = lastOS.match(/OS(\d+)/);
+        if (match) {
+          nextNumber = parseInt(match[1]) + 1;
+        }
+      }
+      
+      return `OS${String(nextNumber).padStart(3, '0')}`;
+    } catch (error) {
+      console.error("Erro ao gerar número da OS:", error);
+      // Fallback para geração baseada em tempo
+      const now = new Date();
+      const time = String(now.getTime()).slice(-4);
+      return `OS${time}`;
+    }
   };
 
   const handleSave = async () => {
     try {
-      const numeroOS = formData.numero_os || generateNumeroOS();
+      const numeroOS = formData.numero_os || await generateNumeroOS();
       
       const { error } = await supabase
         .from("ordem_servico")
