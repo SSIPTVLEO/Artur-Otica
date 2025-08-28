@@ -6,6 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Plus, Eye, ArrowLeft, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { Label } from "@/components/ui/label";
 import {
   Table,
   TableBody,
@@ -51,25 +52,42 @@ export default function ReceitaList() {
     cilindrico_perto_oe: "",
   });
 
-  // Função para formatar valores esféricos (sempre com + ou -)
-  const formatEsferico = (value: string) => {
-    if (!value) return "";
-    const num = parseFloat(value.replace(/[^-0-9.]/g, ""));
-    if (isNaN(num)) return "";
-    return num >= 0 ? `+${num.toFixed(2)}` : `${num.toFixed(2)}`;
+  // Função para gerar opções de valores esféricos (+15.00 até -15.00)
+  const generateEsfericoOptions = () => {
+    const options = [];
+    for (let i = 1500; i >= -1500; i -= 25) {
+      const value = (i / 100).toFixed(2);
+      const displayValue = i >= 0 ? `+${value}` : value;
+      options.push({ value: displayValue, label: displayValue });
+    }
+    return options;
   };
 
-  // Função para formatar valores cilíndricos (sempre negativo)
-  const formatCilindrico = (value: string) => {
-    if (!value) return "";
-    const num = Math.abs(parseFloat(value.replace(/[^0-9.]/g, "")));
-    if (isNaN(num)) return "";
-    return `-${num.toFixed(2)}`;
+  // Função para gerar opções de valores cilíndricos (0.00 até -15.00)
+  const generateCilindricoOptions = () => {
+    const options = [{ value: "0.00", label: "0.00" }];
+    for (let i = 25; i <= 1500; i += 25) {
+      const value = (i / 100).toFixed(2);
+      const displayValue = `-${value}`;
+      options.push({ value: displayValue, label: displayValue });
+    }
+    return options;
+  };
+
+  // Função para gerar opções de adição (0.00 até +4.00)
+  const generateAdicaoOptions = () => {
+    const options = [{ value: "0.00", label: "0.00" }];
+    for (let i = 25; i <= 400; i += 25) {
+      const value = (i / 100).toFixed(2);
+      const displayValue = `+${value}`;
+      options.push({ value: displayValue, label: displayValue });
+    }
+    return options;
   };
 
   // Função para calcular graus de perto
   const calculatePerto = (esfericoLonge: string, adicao: string) => {
-    if (!esfericoLonge || !adicao) return "";
+    if (!esfericoLonge || !adicao || adicao === "0.00") return "";
     const longe = parseFloat(esfericoLonge.replace(/[^-0-9.]/g, ""));
     const add = parseFloat(adicao.replace(/[^-0-9.]/g, ""));
     if (isNaN(longe) || isNaN(add)) return "";
@@ -79,25 +97,21 @@ export default function ReceitaList() {
 
   // Atualizar campos de perto quando adição mudar
   useEffect(() => {
-    if (form.adicao_od) {
-      const pertOD = calculatePerto(form.esferico_longe_od, form.adicao_od);
-      setForm(prev => ({
-        ...prev,
-        esferico_perto_od: pertOD,
-        cilindrico_perto_od: form.cilindrico_longe_od,
-      }));
-    }
+    const pertOD = calculatePerto(form.esferico_longe_od, form.adicao_od);
+    setForm(prev => ({
+      ...prev,
+      esferico_perto_od: pertOD,
+      cilindrico_perto_od: form.cilindrico_longe_od,
+    }));
   }, [form.esferico_longe_od, form.adicao_od, form.cilindrico_longe_od]);
 
   useEffect(() => {
-    if (form.adicao_oe) {
-      const pertOE = calculatePerto(form.esferico_longe_oe, form.adicao_oe);
-      setForm(prev => ({
-        ...prev,
-        esferico_perto_oe: pertOE,
-        cilindrico_perto_oe: form.cilindrico_longe_oe,
-      }));
-    }
+    const pertOE = calculatePerto(form.esferico_longe_oe, form.adicao_oe);
+    setForm(prev => ({
+      ...prev,
+      esferico_perto_oe: pertOE,
+      cilindrico_perto_oe: form.cilindrico_longe_oe,
+    }));
   }, [form.esferico_longe_oe, form.adicao_oe, form.cilindrico_longe_oe]);
 
   const fetchClientes = async () => {
@@ -311,35 +325,12 @@ export default function ReceitaList() {
     }
   };
 
-  const handleInputChange = (field: string, value: string) => {
-    let formattedValue = value;
-    
-    if (field.includes('esferico') || field.includes('adicao')) {
-      // Permite inserção livre, formata apenas na saída
-      setForm({ ...form, [field]: value });
-      return;
-    } else if (field.includes('cilindrico')) {
-      // Permite inserção livre, formata apenas na saída
-      setForm({ ...form, [field]: value });
-      return;
-    }
-    
-    setForm({ ...form, [field]: formattedValue });
-  };
-
-  // Função para formatar na saída (blur)
-  const handleInputBlur = (field: string) => {
-    if (field.includes('esferico') || field.includes('adicao')) {
-      const formatted = formatEsferico(form[field as keyof typeof form] as string);
-      setForm({ ...form, [field]: formatted });
-    } else if (field.includes('cilindrico')) {
-      const formatted = formatCilindrico(form[field as keyof typeof form] as string);
-      setForm({ ...form, [field]: formatted });
-    }
+  const handleSelectChange = (field: string, value: string) => {
+    setForm({ ...form, [field]: value });
   };
 
   return (
-    <div>
+    <div className="mt-4">
       <Card className="mb-4">
         <CardHeader>
           <div className="flex items-center justify-between">
@@ -505,179 +496,283 @@ export default function ReceitaList() {
           )}
 
           {editingReceita && (
-            <Card className="mb-4 p-4 bg-muted/50">
-              <div className="flex justify-between mb-4">
-                <CardTitle>Nova Receita</CardTitle>
-                <Button variant="ghost" onClick={cancelEdit}>
-                  <X />
-                </Button>
-              </div>
-              
-              <div className="space-y-6">
-                <div>
-                  <Select
-                    value={form.id_os.toString()}
-                    onValueChange={(value) => setForm({ ...form, id_os: Number(value) })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione uma Ordem de Serviço" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {ordensServico.map((os) => (
-                        <SelectItem key={os.id} value={os.id.toString()}>
-                          {os.numero_os} - {os.cliente?.nome} - {new Date(os.data_pedido).toLocaleDateString('pt-BR')}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+            <Card className="mb-4">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle>
+                    {editingReceita.id ? "Editar Receita" : "Nova Receita"}
+                  </CardTitle>
+                  <Button variant="outline" onClick={cancelEdit}>
+                    <X className="mr-2" /> Cancelar
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 gap-4 mb-6">
+                  <div>
+                    <Label htmlFor="id_os">Ordem de Serviço *</Label>
+                    <Select
+                      value={form.id_os ? String(form.id_os) : ""}
+                      onValueChange={(value) => setForm({ ...form, id_os: parseInt(value) })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione uma OS" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {ordensServico.map((os) => (
+                          <SelectItem key={os.id} value={String(os.id)}>
+                            {os.numero_os} - {os.cliente?.nome}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {/* Olho Direito */}
                   <Card className="p-4">
-                    <h3 className="text-lg font-semibold mb-4">Olho Direito (OD)</h3>
+                    <h3 className="text-lg font-semibold mb-4 text-center">Olho Direito (OD)</h3>
                     
-                    <div className="mb-4">
-                      <h4 className="text-md font-medium mb-2">Longe</h4>
+                    <div className="mb-6">
+                      <h4 className="text-md font-medium mb-3 text-center bg-primary/5 py-2 rounded">Longe</h4>
                       <div className="grid grid-cols-2 gap-3">
-                        <Input
-                          placeholder="Esférico"
-                          value={form.esferico_longe_od}
-                          onChange={(e) => handleInputChange('esferico_longe_od', e.target.value)}
-                          onBlur={() => handleInputBlur('esferico_longe_od')}
-                          step="0.25"
-                        />
-                        <Input
-                          placeholder="Cilíndrico"
-                          value={form.cilindrico_longe_od}
-                          onChange={(e) => handleInputChange('cilindrico_longe_od', e.target.value)}
-                          onBlur={() => handleInputBlur('cilindrico_longe_od')}
-                          step="0.25"
-                        />
-                        <Input
-                          placeholder="Eixo"
-                          value={form.eixo_longe_od}
-                          onChange={(e) => setForm({ ...form, eixo_longe_od: e.target.value })}
-                          type="number"
-                        />
-                        <Input
-                          placeholder="DNP"
-                          value={form.dnp_longe_od}
-                          onChange={(e) => setForm({ ...form, dnp_longe_od: e.target.value })}
-                          type="number"
-                          step="0.5"
-                        />
-                        <Input
-                          placeholder="Altura"
-                          value={form.altura_od}
-                          onChange={(e) => setForm({ ...form, altura_od: e.target.value })}
-                          type="number"
-                          step="0.5"
-                        />
-                        <Input
-                          placeholder="Adição"
-                          value={form.adicao_od}
-                          onChange={(e) => handleInputChange('adicao_od', e.target.value)}
-                          onBlur={() => handleInputBlur('adicao_od')}
-                          step="0.25"
-                        />
+                        <div>
+                          <Label>Esférico</Label>
+                          <Select
+                            value={form.esferico_longe_od}
+                            onValueChange={(value) => handleSelectChange("esferico_longe_od", value)}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Selecione" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {generateEsfericoOptions().map((option) => (
+                                <SelectItem key={option.value} value={option.value}>
+                                  {option.label}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <Label>Cilíndrico</Label>
+                          <Select
+                            value={form.cilindrico_longe_od}
+                            onValueChange={(value) => handleSelectChange("cilindrico_longe_od", value)}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Selecione" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {generateCilindricoOptions().map((option) => (
+                                <SelectItem key={option.value} value={option.value}>
+                                  {option.label}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <Label>Eixo</Label>
+                          <Input
+                            type="number"
+                            min="0"
+                            max="180"
+                            value={form.eixo_longe_od}
+                            onChange={(e) => setForm({ ...form, eixo_longe_od: e.target.value })}
+                            placeholder="0"
+                          />
+                        </div>
+                        <div>
+                          <Label>DNP</Label>
+                          <Input
+                            type="number"
+                            step="0.1"
+                            value={form.dnp_longe_od}
+                            onChange={(e) => setForm({ ...form, dnp_longe_od: e.target.value })}
+                            placeholder="0.0"
+                          />
+                        </div>
+                        <div>
+                          <Label>Altura</Label>
+                          <Input
+                            type="number"
+                            step="0.1"
+                            value={form.altura_od}
+                            onChange={(e) => setForm({ ...form, altura_od: e.target.value })}
+                            placeholder="0.0"
+                          />
+                        </div>
+                        <div>
+                          <Label>Adição</Label>
+                          <Select
+                            value={form.adicao_od}
+                            onValueChange={(value) => handleSelectChange("adicao_od", value)}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Selecione" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {generateAdicaoOptions().map((option) => (
+                                <SelectItem key={option.value} value={option.value}>
+                                  {option.label}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
                       </div>
                     </div>
 
                     <div>
-                      <h4 className="text-md font-medium mb-2">Perto (Calculado automaticamente)</h4>
+                      <h4 className="text-md font-medium mb-3 text-center bg-secondary/5 py-2 rounded">Perto (Calculado)</h4>
                       <div className="grid grid-cols-2 gap-3">
-                        <Input
-                          placeholder="Esférico Perto"
-                          value={form.esferico_perto_od}
-                          readOnly
-                          className="bg-muted"
-                        />
-                        <Input
-                          placeholder="Cilíndrico Perto"
-                          value={form.cilindrico_perto_od}
-                          readOnly
-                          className="bg-muted"
-                        />
+                        <div>
+                          <Label>Esférico</Label>
+                          <Input
+                            value={form.esferico_perto_od}
+                            readOnly
+                            className="bg-muted"
+                          />
+                        </div>
+                        <div>
+                          <Label>Cilíndrico</Label>
+                          <Input
+                            value={form.cilindrico_perto_od}
+                            readOnly
+                            className="bg-muted"
+                          />
+                        </div>
                       </div>
                     </div>
                   </Card>
 
                   {/* Olho Esquerdo */}
                   <Card className="p-4">
-                    <h3 className="text-lg font-semibold mb-4">Olho Esquerdo (OE)</h3>
+                    <h3 className="text-lg font-semibold mb-4 text-center">Olho Esquerdo (OE)</h3>
                     
-                    <div className="mb-4">
-                      <h4 className="text-md font-medium mb-2">Longe</h4>
+                    <div className="mb-6">
+                      <h4 className="text-md font-medium mb-3 text-center bg-primary/5 py-2 rounded">Longe</h4>
                       <div className="grid grid-cols-2 gap-3">
-                        <Input
-                          placeholder="Esférico"
-                          value={form.esferico_longe_oe}
-                          onChange={(e) => handleInputChange('esferico_longe_oe', e.target.value)}
-                          onBlur={() => handleInputBlur('esferico_longe_oe')}
-                          step="0.25"
-                        />
-                        <Input
-                          placeholder="Cilíndrico"
-                          value={form.cilindrico_longe_oe}
-                          onChange={(e) => handleInputChange('cilindrico_longe_oe', e.target.value)}
-                          onBlur={() => handleInputBlur('cilindrico_longe_oe')}
-                          step="0.25"
-                        />
-                        <Input
-                          placeholder="Eixo"
-                          value={form.eixo_longe_oe}
-                          onChange={(e) => setForm({ ...form, eixo_longe_oe: e.target.value })}
-                          type="number"
-                        />
-                        <Input
-                          placeholder="DNP"
-                          value={form.dnp_longe_oe}
-                          onChange={(e) => setForm({ ...form, dnp_longe_oe: e.target.value })}
-                          type="number"
-                          step="0.5"
-                        />
-                        <Input
-                          placeholder="Altura"
-                          value={form.altura_oe}
-                          onChange={(e) => setForm({ ...form, altura_oe: e.target.value })}
-                          type="number"
-                          step="0.5"
-                        />
-                        <Input
-                          placeholder="Adição"
-                          value={form.adicao_oe}
-                          onChange={(e) => handleInputChange('adicao_oe', e.target.value)}
-                          onBlur={() => handleInputBlur('adicao_oe')}
-                          step="0.25"
-                        />
+                        <div>
+                          <Label>Esférico</Label>
+                          <Select
+                            value={form.esferico_longe_oe}
+                            onValueChange={(value) => handleSelectChange("esferico_longe_oe", value)}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Selecione" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {generateEsfericoOptions().map((option) => (
+                                <SelectItem key={option.value} value={option.value}>
+                                  {option.label}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <Label>Cilíndrico</Label>
+                          <Select
+                            value={form.cilindrico_longe_oe}
+                            onValueChange={(value) => handleSelectChange("cilindrico_longe_oe", value)}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Selecione" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {generateCilindricoOptions().map((option) => (
+                                <SelectItem key={option.value} value={option.value}>
+                                  {option.label}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <Label>Eixo</Label>
+                          <Input
+                            type="number"
+                            min="0"
+                            max="180"
+                            value={form.eixo_longe_oe}
+                            onChange={(e) => setForm({ ...form, eixo_longe_oe: e.target.value })}
+                            placeholder="0"
+                          />
+                        </div>
+                        <div>
+                          <Label>DNP</Label>
+                          <Input
+                            type="number"
+                            step="0.1"
+                            value={form.dnp_longe_oe}
+                            onChange={(e) => setForm({ ...form, dnp_longe_oe: e.target.value })}
+                            placeholder="0.0"
+                          />
+                        </div>
+                        <div>
+                          <Label>Altura</Label>
+                          <Input
+                            type="number"
+                            step="0.1"
+                            value={form.altura_oe}
+                            onChange={(e) => setForm({ ...form, altura_oe: e.target.value })}
+                            placeholder="0.0"
+                          />
+                        </div>
+                        <div>
+                          <Label>Adição</Label>
+                          <Select
+                            value={form.adicao_oe}
+                            onValueChange={(value) => handleSelectChange("adicao_oe", value)}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Selecione" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {generateAdicaoOptions().map((option) => (
+                                <SelectItem key={option.value} value={option.value}>
+                                  {option.label}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
                       </div>
                     </div>
 
                     <div>
-                      <h4 className="text-md font-medium mb-2">Perto (Calculado automaticamente)</h4>
+                      <h4 className="text-md font-medium mb-3 text-center bg-secondary/5 py-2 rounded">Perto (Calculado)</h4>
                       <div className="grid grid-cols-2 gap-3">
-                        <Input
-                          placeholder="Esférico Perto"
-                          value={form.esferico_perto_oe}
-                          readOnly
-                          className="bg-muted"
-                        />
-                        <Input
-                          placeholder="Cilíndrico Perto"
-                          value={form.cilindrico_perto_oe}
-                          readOnly
-                          className="bg-muted"
-                        />
+                        <div>
+                          <Label>Esférico</Label>
+                          <Input
+                            value={form.esferico_perto_oe}
+                            readOnly
+                            className="bg-muted"
+                          />
+                        </div>
+                        <div>
+                          <Label>Cilíndrico</Label>
+                          <Input
+                            value={form.cilindrico_perto_oe}
+                            readOnly
+                            className="bg-muted"
+                          />
+                        </div>
                       </div>
                     </div>
                   </Card>
                 </div>
-              </div>
-              
-              <Button className="mt-6" onClick={saveReceita}>
-                Salvar Receita
-              </Button>
+
+                <div className="flex justify-end mt-6">
+                  <Button onClick={saveReceita} className="bg-gradient-primary hover:shadow-glow">
+                    Salvar Receita
+                  </Button>
+                </div>
+              </CardContent>
             </Card>
           )}
         </CardContent>
