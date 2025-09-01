@@ -18,6 +18,11 @@ interface Pagamento {
     cliente?: {
       nome: string;
     };
+    armacao_lente?: Array<{
+      marca_armacao?: string;
+      referencia_armacao?: string;
+      lente_comprada?: string;
+    }>;
   };
 }
 
@@ -69,15 +74,34 @@ export function CupomFiscal({ pagamento, isOpen, onClose }: CupomFiscalProps) {
             <h3 className="font-bold mb-1">ITENS</h3>
             <div className="space-y-1">
               {pagamento.valor_armacao && (
-                <div className="flex justify-between">
-                  <span>Armação</span>
-                  <span>R$ {pagamento.valor_armacao.toFixed(2)}</span>
+                <div>
+                  <div className="flex justify-between">
+                    <span>Armação</span>
+                    <span>R$ {pagamento.valor_armacao.toFixed(2)}</span>
+                  </div>
+                  {pagamento.ordem_servico?.armacao_lente?.[0] && (
+                    <div className="text-xs text-gray-600 ml-2">
+                      {pagamento.ordem_servico.armacao_lente[0].marca_armacao && (
+                        <p>Marca: {pagamento.ordem_servico.armacao_lente[0].marca_armacao}</p>
+                      )}
+                      {pagamento.ordem_servico.armacao_lente[0].referencia_armacao && (
+                        <p>Ref: {pagamento.ordem_servico.armacao_lente[0].referencia_armacao}</p>
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
               {pagamento.valor_lente && (
-                <div className="flex justify-between">
-                  <span>Lente</span>
-                  <span>R$ {pagamento.valor_lente.toFixed(2)}</span>
+                <div>
+                  <div className="flex justify-between">
+                    <span>Lente</span>
+                    <span>R$ {pagamento.valor_lente.toFixed(2)}</span>
+                  </div>
+                  {pagamento.ordem_servico?.armacao_lente?.[0]?.lente_comprada && (
+                    <div className="text-xs text-gray-600 ml-2">
+                      <p>Lente: {pagamento.ordem_servico.armacao_lente[0].lente_comprada}</p>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -103,13 +127,38 @@ export function CupomFiscal({ pagamento, isOpen, onClose }: CupomFiscalProps) {
           </div>
           
           <div className="border-b pb-2">
-            <div className="flex justify-between">
-              <span>Pagamento</span>
-              <span>{pagamento.forma_pagamento?.toUpperCase()}</span>
-            </div>
-            <div className="flex justify-between">
-              <span>Status</span>
-              <span>{pagamento.status?.toUpperCase()}</span>
+            <h3 className="font-bold mb-1">PAGAMENTO</h3>
+            <div className="space-y-1">
+              <div className="flex justify-between">
+                <span>Forma</span>
+                <span>{pagamento.forma_pagamento?.toUpperCase()}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Status</span>
+                <span>{pagamento.status?.toUpperCase()}</span>
+              </div>
+              {pagamento.entrada && pagamento.entrada > 0 && (
+                <div className="text-xs">
+                  <div className="flex justify-between">
+                    <span>• Entrada</span>
+                    <span>R$ {pagamento.entrada.toFixed(2)}</span>
+                  </div>
+                  {pagamento.parcelas && pagamento.parcelas > 0 && (
+                    <div className="flex justify-between">
+                      <span>• Restante</span>
+                      <span>{pagamento.parcelas}x R$ {pagamento.valor_parcelas?.toFixed(2)}</span>
+                    </div>
+                  )}
+                </div>
+              )}
+              {!pagamento.entrada && pagamento.parcelas && pagamento.parcelas > 1 && (
+                <div className="text-xs">
+                  <div className="flex justify-between">
+                    <span>• Parcelado</span>
+                    <span>{pagamento.parcelas}x R$ {pagamento.valor_parcelas?.toFixed(2)}</span>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
           

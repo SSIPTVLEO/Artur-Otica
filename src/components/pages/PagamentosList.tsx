@@ -47,6 +47,11 @@ interface Pagamento {
     cliente?: {
       nome: string;
     };
+    armacao_lente?: Array<{
+      marca_armacao?: string;
+      referencia_armacao?: string;
+      lente_comprada?: string;
+    }>;
   };
 }
 
@@ -117,6 +122,11 @@ export function PagamentosList() {
             numero_os,
             cliente:cliente!ordem_servico_id_cliente_fkey (
               nome
+            ),
+            armacao_lente:armacao_lente!armacao_lente_id_os_fkey (
+              marca_armacao,
+              referencia_armacao,
+              lente_comprada
             )
           )
         `)
