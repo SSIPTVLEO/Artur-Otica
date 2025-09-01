@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Search, Eye, Edit } from "lucide-react";
+import { Plus, Search, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -34,6 +34,7 @@ interface OrdemServico {
   numero_os: string;
   id_cliente: number;
   data_pedido: string;
+  status?: string;
   cliente?: {
     nome: string;
   };
@@ -140,6 +141,7 @@ export function OrdensList() {
           ...formData,
           numero_os: numeroOS,
           id_cliente: parseInt(formData.id_cliente),
+          status: 'ativa',
         }]);
       
       if (error) throw error;
@@ -157,6 +159,28 @@ export function OrdensList() {
       toast({
         title: "Erro",
         description: "Não foi possível salvar a ordem de serviço.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleCancel = async (id: number) => {
+    if (!confirm("Tem certeza que deseja cancelar esta ordem de serviço?")) return;
+    
+    try {
+      const { error } = await supabase
+        .from("ordem_servico")
+        .update({ status: 'cancelada' })
+        .eq("id", id);
+      
+      if (error) throw error;
+      toast({ title: "Sucesso", description: "Ordem de serviço cancelada!" });
+      fetchOrdens();
+    } catch (error) {
+      console.error("Erro ao cancelar ordem:", error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível cancelar a ordem de serviço.",
         variant: "destructive",
       });
     }
@@ -251,6 +275,7 @@ export function OrdensList() {
                 <TableHead>Número OS</TableHead>
                 <TableHead>Cliente</TableHead>
                 <TableHead>Data do Pedido</TableHead>
+                <TableHead>Status</TableHead>
                 <TableHead className="text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
@@ -260,14 +285,24 @@ export function OrdensList() {
                   <TableCell className="font-medium">{ordem.numero_os}</TableCell>
                   <TableCell>{ordem.cliente?.nome}</TableCell>
                   <TableCell>{new Date(ordem.data_pedido).toLocaleDateString('pt-BR')}</TableCell>
+                  <TableCell>
+                    <span className={`px-2 py-1 rounded text-xs ${ordem.status === 'cancelada' ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'}`}>
+                      {ordem.status === 'cancelada' ? 'Cancelada' : 'Ativa'}
+                    </span>
+                  </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end space-x-2">
-                      <Button variant="outline" size="sm">
-                        <Eye className="h-3 w-3" />
-                      </Button>
-                      <Button variant="outline" size="sm">
-                        <Edit className="h-3 w-3" />
-                      </Button>
+                      {ordem.status !== 'cancelada' && (
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => handleCancel(ordem.id)}
+                          className="text-red-600 hover:text-red-800"
+                        >
+                          <X className="h-3 w-3" />
+                          Cancelar
+                        </Button>
+                      )}
                     </div>
                   </TableCell>
                 </TableRow>

@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Search, Edit, Trash2, DollarSign } from "lucide-react";
+import { Plus, Search, Edit, Trash2, DollarSign, Printer, MessageCircle, Eye } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -29,6 +29,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { CupomFiscal } from "@/components/forms/CupomFiscal";
 
 interface Pagamento {
   id: number;
@@ -63,6 +64,8 @@ export function PagamentosList() {
   const [searchTerm, setSearchTerm] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingPagamento, setEditingPagamento] = useState<Pagamento | null>(null);
+  const [showReceipt, setShowReceipt] = useState(false);
+  const [selectedPagamento, setSelectedPagamento] = useState<Pagamento | null>(null);
   const [formData, setFormData] = useState({
     id_os: "",
     valor_armacao: "",
@@ -257,6 +260,18 @@ export function PagamentosList() {
     }
   };
 
+  const handlePrint = () => {
+    window.print();
+  };
+
+  const handleWhatsApp = (pagamento: Pagamento) => {
+    const message = `Olá! Aqui está o comprovante do seu pagamento:\n\nOS: ${pagamento.ordem_servico?.numero_os}\nCliente: ${pagamento.ordem_servico?.cliente?.nome}\nValor Total: R$ ${pagamento.valor_total.toFixed(2)}\nStatus: ${pagamento.status}\n\nObrigado!`;
+    const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
+    window.open(whatsappUrl, '_blank');
+  };
+
+  const isPaymentConfirmed = (status?: string) => status === 'pago';
+
   const filteredPagamentos = pagamentos.filter((pagamento) =>
     pagamento.ordem_servico?.numero_os.toLowerCase().includes(searchTerm.toLowerCase()) ||
     pagamento.ordem_servico?.cliente?.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -305,6 +320,7 @@ export function PagamentosList() {
                   step="0.01"
                   value={formData.valor_armacao}
                   onChange={(e) => setFormData({ ...formData, valor_armacao: e.target.value })}
+                  disabled={isPaymentConfirmed(editingPagamento?.status)}
                 />
               </div>
               <div>
@@ -315,6 +331,7 @@ export function PagamentosList() {
                   step="0.01"
                   value={formData.valor_lente}
                   onChange={(e) => setFormData({ ...formData, valor_lente: e.target.value })}
+                  disabled={isPaymentConfirmed(editingPagamento?.status)}
                 />
               </div>
               <div>
@@ -336,6 +353,7 @@ export function PagamentosList() {
                   step="0.01"
                   value={formData.entrada}
                   onChange={(e) => setFormData({ ...formData, entrada: e.target.value })}
+                  disabled={isPaymentConfirmed(editingPagamento?.status)}
                 />
               </div>
               <div>
@@ -345,6 +363,7 @@ export function PagamentosList() {
                   type="number"
                   value={formData.parcelas}
                   onChange={(e) => setFormData({ ...formData, parcelas: e.target.value })}
+                  disabled={isPaymentConfirmed(editingPagamento?.status)}
                 />
               </div>
               <div>
@@ -363,6 +382,7 @@ export function PagamentosList() {
                 <Select
                   value={formData.forma_pagamento}
                   onValueChange={(value) => setFormData({ ...formData, forma_pagamento: value })}
+                  disabled={isPaymentConfirmed(editingPagamento?.status)}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione" />
@@ -402,9 +422,31 @@ export function PagamentosList() {
               }}>
                 Cancelar
               </Button>
-              <Button onClick={handleSave} disabled={!formData.id_os || !formData.valor_total}>
-                Salvar
+              <Button onClick={handleSave} disabled={!formData.id_os || !formData.valor_total || isPaymentConfirmed(editingPagamento?.status)}>
+                {isPaymentConfirmed(editingPagamento?.status) ? "Visualizar" : "Salvar"}
               </Button>
+              {isPaymentConfirmed(editingPagamento?.status) && (
+                <div className="flex space-x-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setSelectedPagamento(editingPagamento);
+                      setShowReceipt(true);
+                      setIsDialogOpen(false);
+                    }}
+                  >
+                    <Printer className="mr-2 h-4 w-4" />
+                    Imprimir
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => handleWhatsApp(editingPagamento!)}
+                  >
+                    <MessageCircle className="mr-2 h-4 w-4" />
+                    WhatsApp
+                  </Button>
+                </div>
+              )}
             </div>
           </DialogContent>
         </Dialog>
@@ -457,15 +499,37 @@ export function PagamentosList() {
                         size="sm"
                         onClick={() => handleEdit(pagamento)}
                       >
-                        <Edit className="h-3 w-3" />
+                        {isPaymentConfirmed(pagamento.status) ? <Eye className="h-3 w-3" /> : <Edit className="h-3 w-3" />}
                       </Button>
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        onClick={() => handleDelete(pagamento.id)}
-                      >
-                        <Trash2 className="h-3 w-3" />
-                      </Button>
+                      {isPaymentConfirmed(pagamento.status) ? (
+                        <>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setSelectedPagamento(pagamento);
+                              setShowReceipt(true);
+                            }}
+                          >
+                            <Printer className="h-3 w-3" />
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleWhatsApp(pagamento)}
+                          >
+                            <MessageCircle className="h-3 w-3" />
+                          </Button>
+                        </>
+                      ) : (
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => handleDelete(pagamento.id)}
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                      )}
                     </div>
                   </TableCell>
                 </TableRow>
@@ -479,6 +543,15 @@ export function PagamentosList() {
           )}
         </CardContent>
       </Card>
+      
+      <CupomFiscal 
+        pagamento={selectedPagamento}
+        isOpen={showReceipt}
+        onClose={() => {
+          setShowReceipt(false);
+          setSelectedPagamento(null);
+        }}
+      />
     </div>
   );
 }

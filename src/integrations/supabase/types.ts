@@ -81,6 +81,7 @@ export type Database = {
           id: number
           nome: string
           telefone: string | null
+          user_id: string | null
         }
         Insert: {
           bairro?: string | null
@@ -92,6 +93,7 @@ export type Database = {
           id?: number
           nome: string
           telefone?: string | null
+          user_id?: string | null
         }
         Update: {
           bairro?: string | null
@@ -103,6 +105,7 @@ export type Database = {
           id?: number
           nome?: string
           telefone?: string | null
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -113,6 +116,7 @@ export type Database = {
           id: number
           id_cliente: number
           numero_os: string
+          status: string | null
         }
         Insert: {
           created_by?: string
@@ -120,6 +124,7 @@ export type Database = {
           id?: number
           id_cliente: number
           numero_os: string
+          status?: string | null
         }
         Update: {
           created_by?: string
@@ -127,6 +132,7 @@ export type Database = {
           id?: number
           id_cliente?: number
           numero_os?: string
+          status?: string | null
         }
         Relationships: [
           {
@@ -192,19 +198,22 @@ export type Database = {
         Row: {
           created_at: string
           full_name: string | null
-          role: string
+          name: string
+          role: string | null
           user_id: string
         }
         Insert: {
           created_at?: string
           full_name?: string | null
-          role: string
+          name: string
+          role?: string | null
           user_id: string
         }
         Update: {
           created_at?: string
           full_name?: string | null
-          role?: string
+          name?: string
+          role?: string | null
           user_id?: string
         }
         Relationships: []
@@ -288,6 +297,30 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      users: {
+        Row: {
+          criado_em: string | null
+          email: string
+          id: string
+          nome: string
+          senha: string
+        }
+        Insert: {
+          criado_em?: string | null
+          email: string
+          id?: string
+          nome: string
+          senha: string
+        }
+        Update: {
+          criado_em?: string | null
+          email?: string
+          id?: string
+          nome?: string
+          senha?: string
+        }
+        Relationships: []
       }
     }
     Views: {
