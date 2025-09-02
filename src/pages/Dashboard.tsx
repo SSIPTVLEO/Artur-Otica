@@ -205,7 +205,7 @@ export function Dashboard() {
             <div className="flex items-center justify-between">
               <h2 className="text-2xl font-bold">Dashboard</h2>
               <div className="text-sm text-muted-foreground">
-                Logado como: {user?.user_metadata?.full_name || user?.email || 'Usuário'}
+                Usuário logado: {user?.user_metadata?.full_name || user?.email || 'Usuário'}
               </div>
             </div>
             
