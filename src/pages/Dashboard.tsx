@@ -298,13 +298,13 @@ export function Dashboard() {
         onClose={() => setSidebarOpen(false)}
       />
       
-      <div className="flex-1 lg:pl-64">
+      <div className="flex-1">
         <Header
           onMenuClick={() => setSidebarOpen(true)}
           user={user}
         />
         
-        <main className="p-6 pt-2 min-h-[calc(100vh-4rem)]">
+        <main className="p-4 lg:p-6 pt-2 min-h-[calc(100vh-4rem)]">
           {renderContent()}
         </main>
       </div>

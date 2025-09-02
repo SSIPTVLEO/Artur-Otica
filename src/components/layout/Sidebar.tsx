@@ -45,14 +45,14 @@ export function Sidebar({ activeTab, onTabChange, isOpen, onClose }: SidebarProp
           isOpen ? "translate-x-0" : "-translate-x-full"
         )}
       >
-        <div className="flex h-16 items-center justify-between px-6 lg:justify-center">
-          <div className="flex items-center space-x-2 lg:hidden">
+        <div className="flex h-16 items-center justify-between px-4 lg:px-6">
+          <div className="flex items-center space-x-2">
             <img 
               src="/lovable-uploads/2892ba25-dff0-4b33-8c36-b163ff336807.png" 
               alt="Arthur Ótica" 
               className="h-8 w-8 rounded-full"
             />
-            <span className="text-lg font-semibold">Artur Ótica</span>
+            <span className="text-lg font-semibold lg:block hidden">Artur Ótica</span>
           </div>
           <Button
             variant="ghost"
@@ -64,7 +64,7 @@ export function Sidebar({ activeTab, onTabChange, isOpen, onClose }: SidebarProp
           </Button>
         </div>
         
-        <nav className="space-y-1 px-3">
+        <nav className="space-y-1 px-2 lg:px-3">
           {navigation.map((item) => {
             const Icon = item.icon;
             return (
