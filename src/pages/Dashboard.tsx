@@ -290,7 +290,7 @@ export function Dashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background flex">
       <Sidebar
         activeTab={activeTab}
         onTabChange={setActiveTab}
@@ -298,13 +298,13 @@ export function Dashboard() {
         onClose={() => setSidebarOpen(false)}
       />
       
-      <div className="lg:pl-64">
+      <div className="flex-1 lg:pl-64">
         <Header
           onMenuClick={() => setSidebarOpen(true)}
           user={user}
         />
         
-        <main className="p-6 pt-2">
+        <main className="p-6 pt-2 min-h-[calc(100vh-4rem)]">
           {renderContent()}
         </main>
       </div>

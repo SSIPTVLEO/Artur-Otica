@@ -1,6 +1,8 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Printer, X } from "lucide-react";
+import { Printer, X, MessageCircle } from "lucide-react";
+import { gerarTextoComprovanteWhatsApp, enviarWhatsApp } from "@/lib/cupom-utils";
+import { useToast } from "@/hooks/use-toast";
 
 interface Pagamento {
   id: number;
@@ -33,10 +35,21 @@ interface CupomFiscalProps {
 }
 
 export function CupomFiscal({ pagamento, isOpen, onClose }: CupomFiscalProps) {
+  const { toast } = useToast();
+  
   if (!pagamento) return null;
 
   const handlePrint = () => {
     window.print();
+  };
+
+  const handleWhatsApp = () => {
+    const textoComprovante = gerarTextoComprovanteWhatsApp(pagamento);
+    enviarWhatsApp(textoComprovante);
+    toast({
+      title: "WhatsApp aberto",
+      description: "O cupom foi preparado para envio via WhatsApp.",
+    });
   };
 
   return (
@@ -172,6 +185,10 @@ export function CupomFiscal({ pagamento, isOpen, onClose }: CupomFiscalProps) {
           <Button variant="outline" onClick={onClose}>
             <X className="mr-2 h-4 w-4" />
             Fechar
+          </Button>
+          <Button variant="outline" onClick={handleWhatsApp} className="bg-green-600 text-white hover:bg-green-700">
+            <MessageCircle className="mr-2 h-4 w-4" />
+            WhatsApp
           </Button>
           <Button onClick={handlePrint}>
             <Printer className="mr-2 h-4 w-4" />
