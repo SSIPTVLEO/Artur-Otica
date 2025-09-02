@@ -1,8 +1,11 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Printer, X, MessageCircle } from "lucide-react";
+import { Printer, X, MessageCircle, FileImage, FileText } from "lucide-react";
 import { gerarTextoComprovanteWhatsApp, enviarWhatsApp } from "@/lib/cupom-utils";
 import { useToast } from "@/hooks/use-toast";
+import html2canvas from "html2canvas";
+import jsPDF from "jspdf";
+import { useRef } from "react";
 
 interface Pagamento {
   id: number;
@@ -36,6 +39,7 @@ interface CupomFiscalProps {
 
 export function CupomFiscal({ pagamento, isOpen, onClose }: CupomFiscalProps) {
   const { toast } = useToast();
+  const cupomRef = useRef<HTMLDivElement>(null);
   
   if (!pagamento) return null;
 
@@ -52,6 +56,73 @@ export function CupomFiscal({ pagamento, isOpen, onClose }: CupomFiscalProps) {
     });
   };
 
+  const handleWhatsAppPNG = async () => {
+    if (!cupomRef.current) return;
+    
+    try {
+      const canvas = await html2canvas(cupomRef.current, {
+        backgroundColor: 'white',
+        scale: 2,
+        useCORS: true,
+        allowTaint: true
+      });
+      
+      canvas.toBlob((blob) => {
+        if (blob) {
+          const url = URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          link.download = `cupom-fiscal-${pagamento.ordem_servico?.numero_os}.png`;
+          link.href = url;
+          link.click();
+          URL.revokeObjectURL(url);
+          
+          toast({
+            title: "Imagem gerada",
+            description: "O cupom foi salvo como PNG. Envie pelo WhatsApp!",
+          });
+        }
+      }, 'image/png');
+    } catch (error) {
+      toast({
+        title: "Erro",
+        description: "Não foi possível gerar a imagem.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleWhatsAppPDF = async () => {
+    if (!cupomRef.current) return;
+    
+    try {
+      const canvas = await html2canvas(cupomRef.current, {
+        backgroundColor: 'white',
+        scale: 2,
+        useCORS: true,
+        allowTaint: true
+      });
+      
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF('p', 'mm', [80, 120]);
+      const imgWidth = 70;
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      
+      pdf.addImage(imgData, 'PNG', 5, 5, imgWidth, imgHeight);
+      pdf.save(`cupom-fiscal-${pagamento.ordem_servico?.numero_os}.pdf`);
+      
+      toast({
+        title: "PDF gerado",
+        description: "O cupom foi salvo como PDF. Envie pelo WhatsApp!",
+      });
+    } catch (error) {
+      toast({
+        title: "Erro",
+        description: "Não foi possível gerar o PDF.",
+        variant: "destructive"
+      });
+    }
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-md print:shadow-none print:max-w-full print:m-0">
@@ -59,7 +130,7 @@ export function CupomFiscal({ pagamento, isOpen, onClose }: CupomFiscalProps) {
           <DialogTitle>Cupom Fiscal</DialogTitle>
         </DialogHeader>
         
-        <div className="space-y-4 font-mono text-sm print:text-xs">
+        <div ref={cupomRef} className="space-y-4 font-mono text-sm print:text-xs bg-white p-4">
           <div className="text-center border-b pb-2">
             <h1 className="font-bold text-lg">ARTUR ÓTICA</h1>
             <p className="text-xs">CNPJ: 00.000.000/0001-00</p>
@@ -188,7 +259,15 @@ export function CupomFiscal({ pagamento, isOpen, onClose }: CupomFiscalProps) {
           </Button>
           <Button variant="outline" onClick={handleWhatsApp} className="bg-green-600 text-white hover:bg-green-700">
             <MessageCircle className="mr-2 h-4 w-4" />
-            WhatsApp
+            WhatsApp Texto
+          </Button>
+          <Button variant="outline" onClick={handleWhatsAppPNG} className="bg-blue-600 text-white hover:bg-blue-700">
+            <FileImage className="mr-2 h-4 w-4" />
+            PNG
+          </Button>
+          <Button variant="outline" onClick={handleWhatsAppPDF} className="bg-red-600 text-white hover:bg-red-700">
+            <FileText className="mr-2 h-4 w-4" />
+            PDF
           </Button>
           <Button onClick={handlePrint}>
             <Printer className="mr-2 h-4 w-4" />
